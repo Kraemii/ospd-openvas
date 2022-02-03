@@ -22,6 +22,7 @@
 """ Setup for the OSP OpenVAS Server. """
 
 import logging
+import threading
 import time
 import copy
 
@@ -33,6 +34,11 @@ from pathlib import Path
 from os import geteuid, environ
 
 import psutil
+from ospd.network import (
+    get_hostname_by_address,
+    is_valid_address,
+    resolve_hostname,
+)
 
 from ospd.ospd import OSPDaemon
 from ospd.scan import ScanProgress, ScanStatus
@@ -43,8 +49,9 @@ from ospd.resultlist import ResultList
 
 from ospd_openvas import __version__
 from ospd_openvas.errors import OspdOpenvasError
+from ospd_openvas.messages.start import ScanHostsMessage
 
-from ospd_openvas.notus import Notus, NotusParser, NotusResultHandler
+from ospd_openvas.notus import Notus, NotusParser, NotusHandler
 from ospd_openvas.dryrun import DryRun
 from ospd_openvas.messages.result import ResultMessage
 from ospd_openvas.nvticache import NVTICache
@@ -53,7 +60,12 @@ from ospd_openvas.lock import LockFile
 from ospd_openvas.preferencehandler import PreferenceHandler
 from ospd_openvas.openvas import Openvas
 from ospd_openvas.vthelper import VtHelper
-from ospd_openvas.messaging.mqtt import MQTTClient, MQTTDaemon, MQTTSubscriber
+from ospd_openvas.messaging.mqtt import (
+    MQTTClient,
+    MQTTDaemon,
+    MQTTPublisher,
+    MQTTSubscriber,
+)
 from ospd_openvas.feed import Feed
 
 from ospd_openvas.gpg_sha_verifier import (
@@ -509,23 +521,31 @@ class OSPDopenvas(OSPDaemon):
 
         self._mqtt_broker_address = mqtt_broker_address
         self._mqtt_broker_port = mqtt_broker_port
+        self._mqtt_enabled = False
+        self._notus_scans = {}
 
     def init(self, server: BaseServer) -> None:
 
-        notus_handler = NotusResultHandler(self.report_results)
+        notus_handler = NotusHandler(self.report_results, self.end_notus_scan)
 
         if self._mqtt_broker_address:
             try:
                 client = MQTTClient(
-                    self._mqtt_broker_address, self._mqtt_broker_port, "ospd"
+                    self._mqtt_broker_address,
+                    self._mqtt_broker_port,
+                    "ospd-openvas",
                 )
-                daemon = MQTTDaemon(client)
-                subscriber = MQTTSubscriber(client)
+                self._mqtt_daemon = MQTTDaemon(client)
 
+                subscriber = MQTTSubscriber(client)
                 subscriber.subscribe(
                     ResultMessage, notus_handler.result_handler
                 )
-                daemon.run()
+
+                self._mqtt_daemon.run()
+
+                self._mqtt_enabled = True
+
             except (ConnectionRefusedError, gaierror, ValueError) as e:
                 logger.error(
                     "Could not connect to MQTT broker at %s, error was: %s."
@@ -1038,6 +1058,71 @@ class OSPDopenvas(OSPDaemon):
             for scan_db in kbdb.get_scan_databases():
                 self.main_db.release_database(scan_db)
 
+    def daemon_exit_cleanup(self) -> None:
+        self._mqtt_daemon.stop()
+        super().daemon_exit_cleanup()
+
+    def start_notus(self, scan_id: str, hosts: List[str], credentials: dict):
+        """Start notus scans for each given host with given credentials"""
+        # Create new MQTT Connection
+        # This is necessary as we work with multiple processes
+        notus_publisher: MQTTPublisher
+        try:
+            client = MQTTClient(
+                self._mqtt_broker_address,
+                self._mqtt_broker_port,
+                scan_id,
+            )
+            notus_publisher = MQTTPublisher(client)
+            mqtt_daemon = MQTTDaemon(client)
+            mqtt_daemon.run()
+
+        except (ConnectionRefusedError, gaierror, ValueError) as e:
+            logger.error(
+                "Could not connect to MQTT broker at %s, error was: %s."
+                " Unable to start Notus scan.",
+                self._mqtt_broker_address,
+                e,
+            )
+            return
+        scanned_hosts = []
+        targets_to_scan = {}
+
+        # Start notus for all hosts
+        for host_str in hosts:
+            print(host_str)
+            if is_valid_address(host_str):
+                ip = host_str
+                host = get_hostname_by_address(ip)
+            else:
+                host = host_str
+                ip = resolve_hostname(host)
+
+            if not ip or ip in scanned_hosts or host in scanned_hosts:
+                continue
+
+            scanned_hosts.append(ip)
+            if host:
+                scanned_hosts.append(host)
+            targets_to_scan[ip] = host
+
+        msg = ScanHostsMessage(
+            scan_id=scan_id,
+            hosts=targets_to_scan,
+            ssh_login=credentials.get("username", ""),
+            ssh_password=credentials.get("password", ""),
+            ssh_key=credentials.get("private", ""),
+            ssh_port=int(credentials.get("port", 22)),
+        )
+        # self._notus_scans[scan_id].append(ip)
+        notus_publisher.publish(msg)
+
+    def end_notus_scan(self, scan_id: str, ip: str) -> None:
+        try:
+            self._notus_scans[scan_id].remove(ip)
+        except ValueError:
+            logger.warning("%s: no notus scan for ip %s.", scan_id, ip)
+
     def exec_scan(self, scan_id: str):
         """Starts the OpenVAS scanner for scan_id scan."""
         params = self.scan_collection.get_options(scan_id)
@@ -1102,6 +1187,20 @@ class OSPDopenvas(OSPDaemon):
         scan_prefs.prepare_nvt_preferences()
         scan_prefs.prepare_boreas_alive_test()
 
+        notus_thread = None
+        if self._mqtt_enabled:
+            notus_cred = scan_prefs.get_ssh_credentials()
+            notus_hosts = scan_prefs.get_target_list()
+            if notus_cred and notus_hosts:
+                notus_thread = threading.Thread(
+                    target=self.start_notus,
+                    kwargs={
+                        "scan_id": scan_id,
+                        "hosts": notus_hosts,
+                        "credentials": notus_cred,
+                    },
+                )
+
         # Release memory used for scan preferences.
         del scan_prefs
 
@@ -1135,6 +1234,11 @@ class OSPDopenvas(OSPDaemon):
                 return
 
             time.sleep(1)
+        logger.info("Scanner started")
+
+        if notus_thread:
+            self._notus_scans[scan_id] = []
+            notus_thread.start()
 
         got_results = False
         while True:
@@ -1199,6 +1303,8 @@ class OSPDopenvas(OSPDaemon):
             got_results = False
 
         # Sleep a second to be sure to get all notus results
+        if notus_thread:
+            notus_thread.join()
         time.sleep(1)
         # Delete keys from KB related to this scan task.
         logger.debug('%s: End Target. Release main database', scan_id)

@@ -21,7 +21,7 @@ import logging
 from unittest import TestCase, mock
 from ospd_openvas.messages.result import ResultMessage
 
-from ospd_openvas.notus import NotusResultHandler, Notus
+from ospd_openvas.notus import NotusHandler, Notus
 
 
 class NotusTestCase(TestCase):
@@ -64,7 +64,7 @@ class NotusTestCase(TestCase):
         mock_report_func = mock.MagicMock(return_value=False)
         logging.Logger.warning = mock.MagicMock()
 
-        notus = NotusResultHandler(mock_report_func)
+        notus = NotusHandler(mock_report_func)
 
         res_msg = ResultMessage(
             scan_id='scan_1',
@@ -90,7 +90,7 @@ class NotusTestCase(TestCase):
         mock_report_func = mock.MagicMock(return_value=True)
         logging.Logger.warning = mock.MagicMock()
 
-        notus = NotusResultHandler(mock_report_func)
+        notus = NotusHandler(mock_report_func)
 
         res_msg = ResultMessage(
             scan_id='scan_1',

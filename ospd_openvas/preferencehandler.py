@@ -32,7 +32,7 @@ from base64 import b64decode
 
 from ospd.scan import ScanCollection
 from ospd.ospd import BASE_SCANNER_PARAMS
-from ospd.network import valid_port_list
+from ospd.network import target_str_to_list, valid_port_list
 from ospd_openvas.openvas import Openvas
 from ospd_openvas.db import KbDB
 from ospd_openvas.nvticache import NVTICache
@@ -519,6 +519,11 @@ class PreferenceHandler:
         target_aux = f'TARGET|||{target}'
         self.kbdb.add_scan_preferences(self.scan_id, [target_aux])
 
+    def get_target_list(self) -> Optional[List[str]]:
+        return target_str_to_list(
+            self.scan_collection.get_host_list(self.scan_id)
+        )
+
     def prepare_ports_for_openvas(self) -> str:
         """Get the port list from the scan collection and store the list
         in the kb."""
@@ -624,8 +629,7 @@ class PreferenceHandler:
                         f'{password}'
                     )
                     cred_prefs_list.append(
-                        f'{OID_SSH_AUTH}:4:file:SSH private key:|||'
-                        f'{private}'
+                        f'{OID_SSH_AUTH}:4:file:SSH private key:|||{private}'
                     )
                 elif cred_type:
                     self.errors.append(
@@ -758,6 +762,11 @@ class PreferenceHandler:
             return False
 
         return True
+
+    def get_ssh_credentials(self) -> Dict:
+        credentials = self.scan_collection.get_credentials(self.scan_id)
+        if credentials:
+            return credentials.get("ssh", None)
 
     def prepare_main_kbindex_for_openvas(self):
         """Store main_kbindex as global preference in the

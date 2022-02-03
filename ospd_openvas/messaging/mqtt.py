@@ -80,7 +80,7 @@ class MQTTPublisher(Publisher):
         self._client = client
 
     def publish(self, message: Message) -> None:
-        logger.debug('Publish message %s', message)
+        logger.debug('Publish message on topic %s: %s', message.topic, message)
         self._client.publish(message.topic, str(message), qos=QOS_AT_LEAST_ONCE)
 
 
@@ -157,3 +157,6 @@ class MQTTDaemon:
 
     def run(self):
         self._client.loop_start()
+
+    def stop(self):
+        self._client.loop_stop()
