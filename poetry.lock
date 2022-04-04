@@ -265,7 +265,7 @@ test = ["appdirs (==1.4.4)", "pytest (>=6)", "pytest-cov (>=2.7)", "pytest-mock 
 
 [[package]]
 name = "pontos"
-version = "22.2.2"
+version = "22.4.0"
 description = "Common utilities and tools maintained by Greenbone Networks"
 category = "dev"
 optional = false
@@ -479,7 +479,7 @@ tracking = ["sentry-sdk"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "0efeb7e045ffc8bc802828d3fc4428cad14d0e708b8f0e501f72c53a494b85c7"
+content-hash = "80bc8a3900b7a9c1ad529255fb762363fd33da12582625bf456c0f48afc0cd13"
 
 [metadata.files]
 astroid = [
@@ -689,8 +689,8 @@ platformdirs = [
     {file = "platformdirs-2.4.0.tar.gz", hash = "sha256:367a5e80b3d04d2428ffa76d33f124cf11e8fff2acdaa9b43d545f5c7d661ef2"},
 ]
 pontos = [
-    {file = "pontos-22.2.2-py3-none-any.whl", hash = "sha256:cd569857774abf0049cf3b20b7a379ed125cdb179bfc4353842479826bc75644"},
-    {file = "pontos-22.2.2.tar.gz", hash = "sha256:e4fcbabeb4b4861da6affd4c084a4ebf2b378e1a3fc6f0c9238eddd286b17ce7"},
+    {file = "pontos-22.4.0-py3-none-any.whl", hash = "sha256:0fc6d41f34440e9706eaf38f9cf5237ca0ee5c6a24600ae3e45c4ab0162cdbb8"},
+    {file = "pontos-22.4.0.tar.gz", hash = "sha256:1d61d12229cbff48e2069e2c5454ba65792a86b1f67a0ec1af249281e3ddad12"},
 ]
 psutil = [
     {file = "psutil-5.9.0-cp27-cp27m-manylinux2010_i686.whl", hash = "sha256:55ce319452e3d139e25d6c3f85a1acf12d1607ddedea5e35fb47a552c051161b"},
