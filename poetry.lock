@@ -260,8 +260,8 @@ optional = false
 python-versions = ">=3.6"
 
 [package.extras]
-docs = ["Sphinx (>=4)", "furo (>=2021.7.5b38)", "proselint (>=0.10.2)", "sphinx-autodoc-typehints (>=1.12)"]
-test = ["appdirs (==1.4.4)", "pytest (>=6)", "pytest-cov (>=2.7)", "pytest-mock (>=3.6)"]
+test = ["pytest-mock (>=3.6)", "pytest-cov (>=2.7)", "pytest (>=6)", "appdirs (==1.4.4)"]
+docs = ["sphinx-autodoc-typehints (>=1.12)", "proselint (>=0.10.2)", "furo (>=2021.7.5b38)", "Sphinx (>=4)"]
 
 [[package]]
 name = "pontos"
@@ -372,7 +372,7 @@ dev = ["build", "pytest", "pytest-timeout"]
 
 [[package]]
 name = "sentry-sdk"
-version = "1.5.5"
+version = "1.9.0"
 description = "Python client for Sentry (https://sentry.io)"
 category = "main"
 optional = true
@@ -390,6 +390,7 @@ celery = ["celery (>=3)"]
 chalice = ["chalice (>=1.16.0)"]
 django = ["django (>=1.8)"]
 falcon = ["falcon (>=1.4)"]
+fastapi = ["fastapi (>=0.79.0)"]
 flask = ["flask (>=0.11)", "blinker (>=1.1)"]
 httpx = ["httpx (>=0.16.0)"]
 pure_eval = ["pure-eval", "executing", "asttokens"]
@@ -398,6 +399,7 @@ quart = ["quart (>=0.16.1)", "blinker (>=1.1)"]
 rq = ["rq (>=0.6)"]
 sanic = ["sanic (>=0.8)"]
 sqlalchemy = ["sqlalchemy (>=1.2)"]
+starlette = ["starlette (>=0.19.1)"]
 tornado = ["tornado (>=5)"]
 
 [[package]]
@@ -479,7 +481,7 @@ tracking = ["sentry-sdk"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "0efeb7e045ffc8bc802828d3fc4428cad14d0e708b8f0e501f72c53a494b85c7"
+content-hash = "a5b357bc4658ba2901b80459e639299f547c28afc025112ee31f177b3050d77b"
 
 [metadata.files]
 astroid = [
@@ -751,8 +753,8 @@ rope = [
     {file = "rope-0.22.0.tar.gz", hash = "sha256:b00fbc064a26fc62d7220578a27fd639b2fad57213663cc396c137e92d73f10f"},
 ]
 sentry-sdk = [
-    {file = "sentry-sdk-1.5.5.tar.gz", hash = "sha256:98fd155fa5d5fec1dbabed32a1a4ae2705f1edaa5dae4e7f7b62a384ba30e759"},
-    {file = "sentry_sdk-1.5.5-py2.py3-none-any.whl", hash = "sha256:3817274fba2498c8ebf6b896ee98ac916c5598706340573268c07bf2bb30d831"},
+    {file = "sentry-sdk-1.9.0.tar.gz", hash = "sha256:f185c53496d79b280fe5d9d21e6572aee1ab802d3354eb12314d216cfbaa8d30"},
+    {file = "sentry_sdk-1.9.0-py2.py3-none-any.whl", hash = "sha256:60b13757d6344a94bf0ccb3c0a006c4de77daab09871b30fbbd05d5ec24e54fb"},
 ]
 toml = [
     {file = "toml-0.10.2-py2.py3-none-any.whl", hash = "sha256:806143ae5bfb6a3c6e736a764057db0e6a0e05e338b5630894a5f779cabb4f9b"},
